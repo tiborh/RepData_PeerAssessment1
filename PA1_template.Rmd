@@ -70,7 +70,10 @@ get.day.sums <- function(good.data) {
 }
 
 total.steps <- get.day.sums(good.data)
-##str(total.steps)
+str(total.steps)
+weekday.totals <- tapply(total.steps$steps,total.steps$weekday,sum)
+barplot(weekday.totals)
+str(weekday.totals)
 mt <- mean(total.steps$steps)
 md <- median(total.steps$steps)
 print(paste("mean of steps:",mt))

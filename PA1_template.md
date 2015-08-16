@@ -101,7 +101,42 @@ total.steps <- get.day.sums(good.data)
 ```
 
 ```r
-##str(total.steps)
+str(total.steps)
+```
+
+```
+## List of 4
+##  $ date   : Factor w/ 53 levels "2012-10-02","2012-10-03",..: 1 2 3 4 5 6 7 8 9 10 ...
+##  $ steps  : int [1:53] 126 11352 12116 13294 15420 11015 12811 9900 10304 17382 ...
+##  $ Dates  : Date[1:53], format: "2012-10-02" "2012-10-03" ...
+##  $ weekday: Ord.factor w/ 7 levels "Monday"<"Tuesday"<..: 2 3 4 5 6 7 2 3 4 5 ...
+##  - attr(*, "row.names")= int [1:53] 1 2 3 4 5 6 7 8 9 10 ...
+##  - attr(*, "idvars")= chr "date"
+##  - attr(*, "rdimnames")=List of 2
+##   ..$ :'data.frame':	53 obs. of  1 variable:
+##   .. ..$ date: Factor w/ 53 levels "2012-10-02","2012-10-03",..: 1 2 3 4 5 6 7 8 9 10 ...
+##   ..$ :'data.frame':	1 obs. of  1 variable:
+##   .. ..$ variable: Factor w/ 1 level "steps": 1
+```
+
+```r
+weekday.totals <- tapply(total.steps$steps,total.steps$weekday,sum)
+barplot(weekday.totals)
+```
+
+![plot of chunk unnamed-chunk-3](figure/unnamed-chunk-3-1.png) 
+
+```r
+str(weekday.totals)
+```
+
+```
+##  int [1:7(1d)] 69824 80546 94326 65702 86518 87748 85944
+##  - attr(*, "dimnames")=List of 1
+##   ..$ : chr [1:7] "Monday" "Tuesday" "Wednesday" "Thursday" ...
+```
+
+```r
 mt <- mean(total.steps$steps)
 md <- median(total.steps$steps)
 print(paste("mean of steps:",mt))
