@@ -77,7 +77,11 @@ print(paste("mean of steps:",mt))
 print(paste("median of steps:",md))
 ```
 
+### Mean and Median
+
 As it can be seen from the code, the mean of steps is `r mt` and the meadian is `r md`.
+
+#### In Plot
 
 Two views are shown here:
 
@@ -108,7 +112,7 @@ get.interval.means <- function(good.data) {
 }
 
 interval.means <- get.interval.means(good.data)
-##str(interval.means)
+str(interval.means)
 ```
 
 The same data is plotted three different ways:
@@ -118,18 +122,22 @@ The same data is plotted three different ways:
 3. ggplot2
 
 ```{R}
-library(ggplot2)
 plot(interval.means$interval,interval.means$steps,type = "l")
+library(ggplot2)
 qplot(interval,steps,data=interval.means)
 g2 <- ggplot(interval.means,aes(intervals,steps))
 q2 <- g2 + geom_line()
 print(q2)
 max.steps.index <- which.max(interval.means$steps)
 max.steps <- max(interval.means$steps)
-index_of_max_steps <- interval.means[max.steps.index,]
+interval_of_max_steps <- interval.means[max.steps.index,]$intervals
 ```
 
-Maximum number of average steps belongs to the following interval: `r max.steps`.
+### Maximum Steps
+
+Maximum number of average steps: `r max.steps`.
+
+Maximum number of average steps belongs to the following interval: `r interval_of_max_steps`.
 
 ## Imputing missing values
 
@@ -182,6 +190,8 @@ print(q3)
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
+### An Interesting Digression
+
 Here, an intentional deviation was made from the original task because that one did not show such a difference as the one below, which shows clearly that everage steps at the weekend are higher and as December is nearning, it is slightly rising, whereas weekday stepnumber seems to be the same average, even if the values are more wildly scattered.
 
 ```{R}
@@ -193,4 +203,38 @@ str(aug.totals)
 g4 <- ggplot(aug.totals,aes(Dates,steps))
 p4 <- g4 + geom_point() + facet_grid(. ~ isWeekend) + geom_smooth(method = "lm")
 print(p4)
+```
+
+### The Original Task
+
+But of course the original task can also be plotted.
+
+1. Starting from aug.data (augmented data), the same preparations are done as from filtered out data.
+2. The means are calculated for weekends and weekdays
+3. The two types of data are unified and plotted
+
+```{R}
+## data preparation
+aug.data$Dates = as.Date(levels(aug.data$date))
+the.days <- c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday")
+aug.data$weekday = factor(weekdays(aug.data$Dates),levels=the.days,ordered=T)
+aug.data$isWeekend = as.numeric(weekdays(aug.data$Dates) %in% weekend)
+levels(aug.data$isWeekend) = c("Weekdays","Weekend")
+
+## means are calculated
+weekday.data <- aug.data[aug.data$isWeekend==0,]
+weekend.data <- aug.data[aug.data$isWeekend==1,]
+weekday.interval.means <- get.interval.means(weekday.data)
+weekend.interval.means <- get.interval.means(weekend.data)
+weekday.interval.means$isWeekend = "weekdays"
+weekend.interval.means$isWeekend = "weekend"
+
+# unification and factorisation
+interval.means2 <- rbind(weekday.interval.means,weekend.interval.means)
+interval.means2$isWeekend = factor(interval.means2$isWeekend)
+str(interval.means2)
+
+g6 <- ggplot(interval.means2,aes(intervals,steps))
+p6 <- g6 + geom_line() + facet_grid(isWeekend ~ .) + ylab("Number of Steps")
+print(p6)
 ```

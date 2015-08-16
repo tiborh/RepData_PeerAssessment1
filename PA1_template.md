@@ -119,7 +119,11 @@ print(paste("median of steps:",md))
 ## [1] "median of steps: 10765"
 ```
 
+### Mean and Median
+
 As it can be seen from the code, the mean of steps is 1.0766189 &times; 10<sup>4</sup> and the meadian is 10765.
+
+#### In Plot
 
 Two views are shown here:
 
@@ -166,7 +170,21 @@ interval.means <- get.interval.means(good.data)
 ```
 
 ```r
-##str(interval.means)
+str(interval.means)
+```
+
+```
+## List of 3
+##  $ interval : Ord.factor w/ 288 levels "0"<"5"<"10"<"15"<..: 1 2 3 4 5 6 7 8 9 10 ...
+##  $ steps    : num [1:288] 1.717 0.3396 0.1321 0.1509 0.0755 ...
+##  $ intervals: num [1:288] 0 5 10 15 20 25 30 35 40 45 ...
+##  - attr(*, "row.names")= int [1:288] 1 2 3 4 5 6 7 8 9 10 ...
+##  - attr(*, "idvars")= chr "interval"
+##  - attr(*, "rdimnames")=List of 2
+##   ..$ :'data.frame':	288 obs. of  1 variable:
+##   .. ..$ interval: Ord.factor w/ 288 levels "0"<"5"<"10"<"15"<..: 1 2 3 4 5 6 7 8 9 10 ...
+##   ..$ :'data.frame':	1 obs. of  1 variable:
+##   .. ..$ variable: Factor w/ 1 level "steps": 1
 ```
 
 The same data is plotted three different ways:
@@ -177,13 +195,13 @@ The same data is plotted three different ways:
 
 
 ```r
-library(ggplot2)
 plot(interval.means$interval,interval.means$steps,type = "l")
 ```
 
 ![plot of chunk unnamed-chunk-6](figure/unnamed-chunk-6-1.png) 
 
 ```r
+library(ggplot2)
 qplot(interval,steps,data=interval.means)
 ```
 
@@ -200,10 +218,14 @@ print(q2)
 ```r
 max.steps.index <- which.max(interval.means$steps)
 max.steps <- max(interval.means$steps)
-index_of_max_steps <- interval.means[max.steps.index,]
+interval_of_max_steps <- interval.means[max.steps.index,]$intervals
 ```
 
-Maximum number of average steps belongs to the following interval: 206.1698113.
+### Maximum Steps
+
+Maximum number of average steps: 206.1698113.
+
+Maximum number of average steps belongs to the following interval: 835.
 
 ## Imputing missing values
 
@@ -342,6 +364,8 @@ print(q3)
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
+### An Interesting Digression
+
 Here, an intentional deviation was made from the original task because that one did not show such a difference as the one below, which shows clearly that everage steps at the weekend are higher and as December is nearning, it is slightly rising, whereas weekday stepnumber seems to be the same average, even if the values are more wildly scattered.
 
 
@@ -376,3 +400,71 @@ print(p4)
 ```
 
 ![plot of chunk unnamed-chunk-10](figure/unnamed-chunk-10-1.png) 
+
+### The Original Task
+
+But of course the original task can also be plotted.
+
+1. Starting from aug.data (augmented data), the same preparations are done as from filtered out data.
+2. The means are calculated for weekends and weekdays
+3. The two types of data are unified and plotted
+
+
+```r
+## data preparation
+aug.data$Dates = as.Date(levels(aug.data$date))
+the.days <- c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday")
+aug.data$weekday = factor(weekdays(aug.data$Dates),levels=the.days,ordered=T)
+aug.data$isWeekend = as.numeric(weekdays(aug.data$Dates) %in% weekend)
+levels(aug.data$isWeekend) = c("Weekdays","Weekend")
+
+## means are calculated
+weekday.data <- aug.data[aug.data$isWeekend==0,]
+weekend.data <- aug.data[aug.data$isWeekend==1,]
+weekday.interval.means <- get.interval.means(weekday.data)
+```
+
+```
+## Using interval as id variables
+```
+
+```r
+weekend.interval.means <- get.interval.means(weekend.data)
+```
+
+```
+## Using interval as id variables
+```
+
+```r
+weekday.interval.means$isWeekend = "weekdays"
+weekend.interval.means$isWeekend = "weekend"
+
+# unification and factorisation
+interval.means2 <- rbind(weekday.interval.means,weekend.interval.means)
+interval.means2$isWeekend = factor(interval.means2$isWeekend)
+str(interval.means2)
+```
+
+```
+## List of 4
+##  $ interval : Ord.factor w/ 288 levels "0"<"5"<"10"<"15"<..: 1 2 3 4 5 6 7 8 9 10 ...
+##  $ steps    : num [1:576] 2.2 0.4 0.1556 0.1778 0.0889 ...
+##  $ intervals: num [1:576] 0 5 10 15 20 25 30 35 40 45 ...
+##  $ isWeekend: Factor w/ 2 levels "weekdays","weekend": 1 1 1 1 1 1 1 1 1 1 ...
+##  - attr(*, "row.names")= int [1:576] 1 2 3 4 5 6 7 8 9 10 ...
+##  - attr(*, "idvars")= chr "interval"
+##  - attr(*, "rdimnames")=List of 2
+##   ..$ :'data.frame':	288 obs. of  1 variable:
+##   .. ..$ interval: Ord.factor w/ 288 levels "0"<"5"<"10"<"15"<..: 1 2 3 4 5 6 7 8 9 10 ...
+##   ..$ :'data.frame':	1 obs. of  1 variable:
+##   .. ..$ variable: Factor w/ 1 level "steps": 1
+```
+
+```r
+g6 <- ggplot(interval.means2,aes(intervals,steps))
+p6 <- g6 + geom_line() + facet_grid(isWeekend ~ .) + ylab("Number of Steps")
+print(p6)
+```
+
+![plot of chunk unnamed-chunk-11](figure/unnamed-chunk-11-1.png) 
