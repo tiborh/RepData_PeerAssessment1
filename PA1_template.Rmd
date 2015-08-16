@@ -5,21 +5,192 @@ output:
     keep_md: true
 ---
 
-
 ## Loading and preprocessing the data
 
+1. The data is downloaded from the url into the _./data_ directory.
+2. The name of the zip file is _repdata_activity.zip_
+3. The data is extracted from the zip file directly
+4. After the data frame is available, it is examined with the _str()_ function
 
+```{R}
+get.the.file <- function() {
+    fileUrl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
+    datapath <- file.path("./data/repdata_activity.zip")
+    data.filepath = "activity.csv"
+
+    if (!dir.exists(dirname(datapath)))
+        dir.create(dirname(datapath))
+
+    if (!file.exists(datapath))
+        download.file(fileUrl,destfile=datapath,method="curl")
+    else
+        print(paste("file already exists:",datapath))
+    my.data <- read.csv(unz(datapath,data.filepath))
+
+    return(my.data)
+}
+
+the.data <- get.the.file()
+str(the.data)
+```
+
+### Data Cleaning
+
+1. Only complete sets are kept, so observations having _NA_ in them, are filtered out.
+2. _date_ is converted to factor
+
+```{R}
+good.filter <- complete.cases(the.data)
+##dim(the.data)
+good.data <- the.data[good.filter,]
+good.data$date = factor(good.data$date)
+str(good.data)
+```
 
 ## What is mean total number of steps taken per day?
 
+1. Only _date_ and _steps_ columns are used.
+2. Steps are summed up for each _date_ factor (using _melt_ and _caust_ functions from _reshape_ package)
+3. _Dates_ column is added, where _date_ values are converted into _Date_ type
+4. A _weekday_ column is added with the name of the day for each date (weekday is converted into factors)
 
+```{R}
+get.day.sums <- function(good.data) {
+    ##install.packages("reshape")
+    library(reshape)
+    steps.frame = data.frame(good.data$date,good.data$steps)
+    names(steps.frame) = c("date","steps")
+    total.steps <- cast(melt(steps.frame),date ~ variable, sum)
+   
+    total.steps$Dates = as.Date(levels(total.steps$date))
+    the.days <- c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday") 
+    total.steps$weekday = factor(weekdays(total.steps$Dates),levels=the.days,ordered=T)
+
+    return(total.steps)
+}
+
+total.steps <- get.day.sums(good.data)
+##str(total.steps)
+mt <- mean(total.steps$steps)
+md <- median(total.steps$steps)
+print(paste("mean of steps:",mt))
+print(paste("median of steps:",md))
+```
+
+As it can be seen from the code, the mean of steps is `r mt` and the meadian is `r md`.
+
+Two views are shown here:
+
+1. Average steps per days of the week
+2. Histogram for average steps
+
+```{R}
+plot(total.steps$weekday,total.steps$steps,main="Number of Steps on Days of the Week",xlab="Days",ylab="Average Steps",type = "l")
+hist(total.steps$steps,breaks=10)
+abline(v = mt, col = "blue", lwd = 2)
+```
 
 ## What is the average daily activity pattern?
 
+1. _steps_ and _interval_ are used
+2. _interval_ is transformed to factor
+3. _intervals_ stores the averages by interval types
 
+```{R}
+get.interval.means <- function(good.data) {
+    interval.frame <- data.frame(good.data$steps,good.data$interval)
+    names(interval.frame) = c("steps","interval")
+    interval.frame$interval = factor(interval.frame$interval,ordered=T)
+    interval.means <- cast(melt(interval.frame),interval ~ variable, mean)
+    interval.means$intervals = as.numeric(levels(interval.means$interval))
+
+    return(interval.means)
+}
+
+interval.means <- get.interval.means(good.data)
+##str(interval.means)
+```
+
+The same data is plotted three different ways:
+
+1. basic plot
+2. quick plot
+3. ggplot2
+
+```{R}
+library(ggplot2)
+plot(interval.means$interval,interval.means$steps,type = "l")
+qplot(interval,steps,data=interval.means)
+g2 <- ggplot(interval.means,aes(intervals,steps))
+q2 <- g2 + geom_line()
+print(q2)
+max.steps.index <- which.max(interval.means$steps)
+max.steps <- max(interval.means$steps)
+index_of_max_steps <- interval.means[max.steps.index,]
+```
+
+Maximum number of average steps belongs to the following interval: `r max.steps`.
 
 ## Imputing missing values
 
+a. Missing values are drawn from the previous data.frame.
+b. Each observation is processed in a loop.
 
+```{R}
+augment.data <- function(the.data,interval.means) {
+    for (i in 1:nrow(the.data)) {
+        if (is.na(the.data$steps[i]))
+            the.data$steps[i] = as.integer(interval.means$steps[interval.means$interval==the.data$interval[i]])
+    }
+    return(the.data)
+}
+
+missing.vals <- sum(is.na(the.data$steps))
+```
+
+The number of missing values imputed: `r missing.vals`.
+
+The two histograms are shown below each other: the one with only complete datasets and the one with NA values replaced by averages.
+
+```{R}
+aug.data <- the.data
+aug.data <- augment.data(aug.data,interval.means)
+str(aug.data)
+str(the.data)
+hist(good.data$steps)                   # more than 12000
+hist(aug.data$steps)                    # a little less than 15000
+```
+
+The totals for each day are also calculated and shown. For comparison, the plot from above is also shown.
+
+```{R}
+aug.totals <- get.day.sums(aug.data)
+str(aug.totals)
+
+plot(total.steps$weekday,total.steps$steps,main="Number of Steps on Days of the Week (complete sets)",xlab="Days",ylab="Average Steps")
+plot(aug.totals$weekday,aug.totals$steps,main="Number of Steps on Days of the Week (augmented)",xlab="Days",ylab="Average Steps")
+mt1 <- mean(aug.totals$steps)
+md1 <- median(aug.totals$steps)
+print(paste("mean of steps:",mt1))
+print(paste("median of steps:",md1))
+
+aug.intervals <- get.interval.means(aug.data)
+g3 <- ggplot(aug.intervals,aes(intervals,steps))
+q3 <- g3 + geom_line()
+print(q3)
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+Here, an intentional deviation was made from the original task because that one did not show such a difference as the one below, which shows clearly that everage steps at the weekend are higher and as December is nearning, it is slightly rising, whereas weekday stepnumber seems to be the same average, even if the values are more wildly scattered.
+
+```{R}
+weekend <- c("Saturday","Sunday")
+aug.totals$isWeekend = as.numeric(weekdays(aug.totals$Dates) %in% weekend)
+aug.totals$isWeekend = factor(aug.totals$isWeekend)
+levels(aug.totals$isWeekend) = c("Weekdays","Weekend")
+str(aug.totals)
+g4 <- ggplot(aug.totals,aes(Dates,steps))
+p4 <- g4 + geom_point() + facet_grid(. ~ isWeekend) + geom_smooth(method = "lm")
+print(p4)
+```
